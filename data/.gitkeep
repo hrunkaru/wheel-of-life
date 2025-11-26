@@ -1,0 +1,5 @@
+# Data Directory
+
+This directory will contain your encrypted wheel-of-life data.
+
+The file `wheel-of-life.json.encrypted` will be created automatically when you make your first entry.

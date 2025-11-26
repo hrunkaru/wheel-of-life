@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wheel of Life Tracker</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Loading Indicator -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p id="loading-text">Loading...</p>
+    </div>
+
+    <!-- Messages -->
+    <div id="error-message" class="message error hidden"></div>
+    <div id="success-message" class="message success hidden"></div>
+
+    <!-- PAT Setup Screen -->
+    <div id="pat-setup" class="screen">
+        <div class="container">
+            <div class="header">
+                <h1>🎯 Wheel of Life Tracker</h1>
+                <p class="subtitle">Track your life balance across 9 key areas</p>
+            </div>
+
+            <div class="card">
+                <h2>GitHub Setup</h2>
+                <p>To get started, you need a GitHub Personal Access Token (PAT) to store your data securely.</p>
+
+                <div class="instructions">
+                    <h3>How to create a PAT:</h3>
+                    <ol>
+                        <li>Go to <a href="https://github.com/settings/tokens?type=beta" target="_blank">GitHub Settings → Tokens</a></li>
+                        <li>Click "Generate new token" (Fine-grained)</li>
+                        <li>Configure:
+                            <ul>
+                                <li><strong>Token name:</strong> Wheel of Life Tracker</li>
+                                <li><strong>Expiration:</strong> 1 year</li>
+                                <li><strong>Repository access:</strong> Only select repositories → hrunkaru/wheel-of-life</li>
+                                <li><strong>Permissions:</strong> Contents → Read and write</li>
+                            </ul>
+                        </li>
+                        <li>Click "Generate token" and copy it</li>
+                    </ol>
+                </div>
+
+                <form id="pat-form">
+                    <div class="form-group">
+                        <label for="pat-input">GitHub Personal Access Token:</label>
+                        <input
+                            type="password"
+                            id="pat-input"
+                            placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                            required
+                        >
+                        <small>This will be stored securely in your browser</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Continue</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Prompt Screen -->
+    <div id="password-prompt" class="screen hidden">
+        <div class="container">
+            <div class="header">
+                <h1>🔐 Enter Password</h1>
+                <p class="subtitle">Your data is encrypted. Enter your password to decrypt it.</p>
+            </div>
+
+            <div class="card">
+                <form id="password-form">
+                    <div class="form-group">
+                        <label for="password-input">Encryption Password:</label>
+                        <input
+                            type="password"
+                            id="password-input"
+                            placeholder="Enter your password"
+                            minlength="8"
+                            required
+                        >
+                        <small>Minimum 8 characters. This password encrypts your data.</small>
+                    </div>
+
+                    <div class="form-group checkbox">
+                        <input type="checkbox" id="remember-password">
+                        <label for="remember-password">Remember on this device (optional)</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Unlock</button>
+                </form>
+
+                <div class="help-text">
+                    <p><strong>First time?</strong> Choose a strong password - you'll need it every time you access your data.</p>
+                    <p><strong>Security:</strong> Even with access to GitHub, your data cannot be read without this password.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="main-app" class="screen hidden">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1>🎯 Wheel of Life</h1>
+            </div>
+            <div class="nav-links">
+                <a href="#" data-view="dashboard" class="nav-link active">Dashboard</a>
+                <a href="#" data-view="entry" class="nav-link">New Entry</a>
+                <a href="#" data-view="history" class="nav-link">History</a>
+                <a href="#" data-view="settings" class="nav-link">Settings</a>
+                <button id="logout-btn" class="btn btn-secondary btn-sm">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="view-content container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Entries</h3>
+                    <p class="stat-value" id="total-entries">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Last Updated</h3>
+                    <p class="stat-value" id="last-updated">Never</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Current Wheel of Life</h2>
+                <div class="chart-container">
+                    <canvas id="wheel-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Entry View -->
+        <div id="entry-view" class="view-content container hidden">
+            <div class="card">
+                <h2>Create New Entry</h2>
+                <p class="subtitle">Rate each area of your life from 0-10</p>
+
+                <form id="entry-form">
+                    <!-- Health Category -->
+                    <div class="category-section">
+                        <h3 class="category-title">💚 Health</h3>
+
+                        <div class="rating-group">
+                            <label for="rating-body">Body</label>
+                            <div class="slider-container">
+                                <input type="range" id="rating-body" min="0" max="10" value="5" class="slider">
+                                <span class="slider-value">5</span>
+                            </div>
+                        </div>
+
+                        <div class="rating-group">
+                            <label for="rating-mind">Mind</label>
+                            <div class="slider-container">
+                                <input type="range" id="rating-mind" min="0" max="10" value="5" class="slider">
+                                <span class="slider-value">5</span>
+                            </div>
+                        </div>
+
+                        <div class="rating-group">
+                            <label for="rating-soul">Soul</label>
+                            <div class="slider-container">
+                                <input type="range" id="rating-soul" min="0" max="10" value="5" class="slider">
+                                <span class="slider-value">5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Relationships Category -->
+                    <div class="category-section">
+                        <h3 class="category-title">💙 Relationships</h3>
+
+                        <div class="rating-group">
+                            <label for="rating-friends">Friends</label>
+                            <div class="slider-container">
+                                <input type="range" id="rating-friends" min="0" max="10" value="5" class="slider">
+                                <span class="slider-value">5</span>
+                            </div>
+                        </div>
+
+                        <div class="rating-group">
+                            <label for="rating-romance">Romance</label>
+                            <div class="slider-container">
+                                <input type="range" id="rating-romance" min="0" max="10" value="5" class="slider">
+                                <span class="slider-value">5</span>
+                            </div>
+                        </div>
+
+                        <div class="rating-group">
+                            <label for="rating-family">Family</label>
+                            <div class="slider-container">
+                                <input type="range" id="rating-family" min="0" max="10" value="5" class="slider">
+                                <span class="slider-value">5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Work Category -->
+                    <div class="category-section">
+                        <h3 class="category-title">🧡 Work</h3>
+
+                        <div class="rating-group">
+                            <label for="rating-mission">Mission</label>
+                            <div class="slider-container">
+                                <input type="range" id="rating-mission" min="0" max="10" value="5" class="slider">
+                                <span class="slider-value">5</span>
+                            </div>
+                        </div>
+
+                        <div class="rating-group">
+                            <label for="rating-money">Money</label>
+                            <div class="slider-container">
+                                <input type="range" id="rating-money" min="0" max="10" value="5" class="slider">
+                                <span class="slider-value">5</span>
+                            </div>
+                        </div>
+
+                        <div class="rating-group">
+                            <label for="rating-growth">Growth</label>
+                            <div class="slider-container">
+                                <input type="range" id="rating-growth" min="0" max="10" value="5" class="slider">
+                                <span class="slider-value">5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-group">
+                        <label for="entry-notes">Notes (optional)</label>
+                        <textarea id="entry-notes" rows="4" placeholder="Any reflections or notes about your current state..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg">Save Entry</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- History View -->
+        <div id="history-view" class="view-content container hidden">
+            <div class="card">
+                <h2>Entry History</h2>
+                <div id="history-list" class="history-list">
+                    <!-- Entries will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="settings-view" class="view-content container hidden">
+            <div class="card">
+                <h2>Settings</h2>
+
+                <div class="settings-section">
+                    <h3>GitHub Connection</h3>
+                    <p>Repository: <strong>hrunkaru/wheel-of-life</strong></p>
+                    <p>Branch: <strong>main</strong></p>
+                    <button id="clear-pat-btn" class="btn btn-danger">Clear GitHub Token</button>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Security</h3>
+                    <p>Your data is encrypted with AES-GCM using your password.</p>
+                    <p>Even with repository access, data cannot be read without your password.</p>
+                </div>
+
+                <div class="settings-section">
+                    <h3>About</h3>
+                    <p>Wheel of Life Tracker v1.0</p>
+                    <p>Track your life balance across Health, Relationships, and Work.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/crypto.js"></script>
+    <script src="js/github.js"></script>
+    <script src="js/visualization.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Slider Value Updates -->
+    <script>
+        // Update slider values in real-time
+        document.addEventListener('DOMContentLoaded', () => {
+            const sliders = document.querySelectorAll('.slider');
+            sliders.forEach(slider => {
+                slider.addEventListener('input', (e) => {
+                    const valueDisplay = e.target.nextElementSibling;
+                    if (valueDisplay) {
+                        valueDisplay.textContent = e.target.value;
+                    }
+                });
+            });
+
+            // Settings - Clear PAT button
+            const clearPatBtn = document.getElementById('clear-pat-btn');
+            if (clearPatBtn) {
+                clearPatBtn.addEventListener('click', () => {
+                    if (confirm('Are you sure you want to clear your GitHub token? You will need to re-enter it on next login.')) {
+                        GitHubModule.clearPAT();
+                        alert('GitHub token cleared. Please refresh the page.');
+                        location.reload();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

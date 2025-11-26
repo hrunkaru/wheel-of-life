@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.bak
+
+# Logs
+*.log
+
+# Don't ignore the encrypted data file - it should be committed!
+# (Just a reminder that the encrypted file is safe to commit)
