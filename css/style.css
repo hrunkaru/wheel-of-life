@@ -453,10 +453,38 @@ body {
     background: var(--bg);
 }
 
+.entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
 .entry-date {
     font-weight: bold;
     color: var(--primary);
-    margin-bottom: 0.75rem;
+    flex: 1;
+}
+
+.delete-entry-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+    opacity: 0.6;
+}
+
+.delete-entry-btn:hover {
+    opacity: 1;
+    background: var(--error);
+    transform: scale(1.1);
+}
+
+.delete-entry-btn:active {
+    transform: scale(0.95);
 }
 
 .entry-ratings {
