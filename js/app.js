@@ -516,7 +516,10 @@ const App = {
             }
 
             entryEl.innerHTML = `
-                <div class="entry-date">${new Date(entry.timestamp).toLocaleString()}</div>
+                <div class="entry-header">
+                    <div class="entry-date">${new Date(entry.timestamp).toLocaleString()}</div>
+                    <button class="delete-entry-btn" data-entry-id="${entry.id}" title="Delete this entry">🗑️</button>
+                </div>
                 <div class="entry-ratings">
                     ${Object.entries(entry.ratings).map(([key, val]) =>
                         `<span class="rating-badge">${key}: ${val}</span>`
@@ -526,6 +529,12 @@ const App = {
                 ${entry.notes ? `<div class="entry-notes">"${entry.notes}"</div>` : ''}
             `;
             historyList.appendChild(entryEl);
+
+            // Add delete button event listener
+            const deleteBtn = entryEl.querySelector('.delete-entry-btn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => this.handleDeleteEntry(entry.id, entry.timestamp));
+            }
         });
 
         // Update entry count
@@ -555,6 +564,49 @@ const App = {
         });
 
         return { improved, declined, hasChanges };
+    },
+
+    /**
+     * Handles entry deletion
+     */
+    async handleDeleteEntry(entryId, timestamp) {
+        const entryDate = new Date(timestamp).toLocaleString();
+        const confirmMessage = `Delete entry from ${entryDate}?\n\nThis cannot be undone.`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        try {
+            // Show loading
+            this.showLoading('Deleting entry...');
+
+            // Find and remove the entry
+            const entryIndex = this.state.data.entries.findIndex(e => e.id === entryId);
+            if (entryIndex === -1) {
+                throw new Error('Entry not found');
+            }
+
+            this.state.data.entries.splice(entryIndex, 1);
+
+            // Save to GitHub
+            await this.saveData('Delete wheel-of-life entry');
+
+            this.hideLoading();
+            this.showSuccess('Entry deleted successfully!');
+
+            // Refresh views
+            if (this.state.currentView === 'history') {
+                this.renderHistory();
+            }
+
+            // Update dashboard if we're viewing it or if it affects the latest entry
+            this.renderDashboard();
+        } catch (error) {
+            this.hideLoading();
+            this.showError('Failed to delete entry: ' + error.message);
+            console.error('Delete error:', error);
+        }
     },
 
     /**
