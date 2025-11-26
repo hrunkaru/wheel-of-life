@@ -15,7 +15,7 @@ const App = {
     },
 
     // Storage keys
-    PASSWORD_STORAGE_KEY: 'encryption_password_hash',
+    PASSWORD_STORAGE_KEY: 'wheel_of_life_password',
     REMEMBER_PASSWORD_KEY: 'remember_password',
 
     /**
@@ -170,11 +170,13 @@ const App = {
 
         this.state.password = password;
 
-        // Remember password option (store encrypted hash)
+        // Remember password option
         if (rememberCheckbox && rememberCheckbox.checked) {
-            localStorage.setItem(this.REMEMBER_PASSWORD_KEY, 'true');
-            // Note: We don't actually store the password, just the preference
-            // User still needs to enter it, but we could add auto-fill in future
+            // Store password in localStorage for convenience
+            localStorage.setItem(this.PASSWORD_STORAGE_KEY, password);
+        } else {
+            // Clear stored password if checkbox is unchecked
+            localStorage.removeItem(this.PASSWORD_STORAGE_KEY);
         }
 
         // Show loading
@@ -325,6 +327,23 @@ const App = {
         document.getElementById('pat-setup').classList.add('hidden');
         document.getElementById('password-prompt').classList.remove('hidden');
         document.getElementById('main-app').classList.add('hidden');
+
+        // Check if password is remembered
+        const rememberedPassword = localStorage.getItem(this.PASSWORD_STORAGE_KEY);
+        const rememberCheckbox = document.getElementById('remember-password');
+
+        if (rememberedPassword && rememberCheckbox) {
+            // Auto-fill password and check the remember checkbox
+            const passwordInput = document.getElementById('password-input');
+            if (passwordInput) {
+                passwordInput.value = rememberedPassword;
+                rememberCheckbox.checked = true;
+            }
+
+            // Optionally auto-submit after a short delay
+            // Uncomment the next line if you want automatic login
+            // setTimeout(() => document.getElementById('password-form').dispatchEvent(new Event('submit')), 500);
+        }
     },
 
     /**
@@ -613,10 +632,24 @@ const App = {
      * Logs out user
      */
     logout() {
-        if (confirm('Are you sure you want to log out? You will need to enter your password again.')) {
+        const message = localStorage.getItem(this.PASSWORD_STORAGE_KEY)
+            ? 'Are you sure you want to log out? Your saved password will remain stored on this device.'
+            : 'Are you sure you want to log out? You will need to enter your password again.';
+
+        if (confirm(message)) {
             this.state.authenticated = false;
             this.state.password = null;
             this.showPasswordPrompt();
+        }
+    },
+
+    /**
+     * Clears stored password from localStorage
+     */
+    clearStoredPassword() {
+        if (confirm('Clear saved password from this device? You will need to enter it manually next time.')) {
+            localStorage.removeItem(this.PASSWORD_STORAGE_KEY);
+            this.showSuccess('Saved password cleared from this device');
         }
     },
 
