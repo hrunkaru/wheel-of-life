@@ -76,6 +76,37 @@ const App = {
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.logout());
         }
+
+        // History date filters
+        const historyStartDate = document.getElementById('history-start-date');
+        const historyEndDate = document.getElementById('history-end-date');
+        const clearFiltersBtn = document.getElementById('clear-filters-btn');
+
+        if (historyStartDate) {
+            historyStartDate.addEventListener('change', () => {
+                if (this.state.currentView === 'history') {
+                    this.renderHistory();
+                }
+            });
+        }
+
+        if (historyEndDate) {
+            historyEndDate.addEventListener('change', () => {
+                if (this.state.currentView === 'history') {
+                    this.renderHistory();
+                }
+            });
+        }
+
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', () => {
+                if (historyStartDate) historyStartDate.value = '';
+                if (historyEndDate) historyEndDate.value = '';
+                if (this.state.currentView === 'history') {
+                    this.renderHistory();
+                }
+            });
+        }
     },
 
     /**
@@ -322,10 +353,87 @@ const App = {
             // Update stats
             document.getElementById('total-entries').textContent = this.state.data.entries.length;
             document.getElementById('last-updated').textContent = new Date(latestEntry.timestamp).toLocaleDateString();
+
+            // Render analytics if there are multiple entries
+            if (this.state.data.entries.length > 1) {
+                this.renderAnalytics();
+            } else {
+                // Hide analytics section if only one entry
+                const analyticsSection = document.getElementById('analytics-section');
+                if (analyticsSection) {
+                    analyticsSection.style.display = 'none';
+                }
+            }
         } else {
             document.getElementById('total-entries').textContent = '0';
             document.getElementById('last-updated').textContent = 'Never';
         }
+    },
+
+    /**
+     * Renders analytics section with trends and averages
+     */
+    renderAnalytics() {
+        const analyticsSection = document.getElementById('analytics-section');
+        if (analyticsSection) {
+            analyticsSection.style.display = 'block';
+        }
+
+        // Get selected time period
+        const timePeriodSelect = document.getElementById('time-period-select');
+        let days = null;
+        if (timePeriodSelect && timePeriodSelect.value !== 'all') {
+            days = parseInt(timePeriodSelect.value);
+        }
+
+        // Calculate averages for different periods
+        const weekAvg = WheelChart.calculateCategoryAverages(this.state.data.entries, 7);
+        const monthAvg = WheelChart.calculateCategoryAverages(this.state.data.entries, 30);
+        const allTimeAvg = WheelChart.calculateCategoryAverages(this.state.data.entries, null);
+
+        // Update average displays
+        this.updateAverageDisplay('week-avg', weekAvg);
+        this.updateAverageDisplay('month-avg', monthAvg);
+        this.updateAverageDisplay('all-time-avg', allTimeAvg);
+
+        // Render trend charts
+        const entries = this.state.data.entries;
+        if (entries.length >= 2) {
+            // Render category averages trend (Health, Relationships, Work)
+            WheelChart.renderCategoryAveragesTrend(entries, 'category-trends-chart');
+        }
+    },
+
+    /**
+     * Updates average display element
+     */
+    updateAverageDisplay(elementId, averages) {
+        const element = document.getElementById(elementId);
+        if (!element || !averages) {
+            if (element) {
+                element.innerHTML = '<p class="no-data">Not enough data</p>';
+            }
+            return;
+        }
+
+        element.innerHTML = `
+            <div class="avg-row">
+                <span class="avg-label">Health:</span>
+                <span class="avg-value">${averages.health.toFixed(1)}</span>
+            </div>
+            <div class="avg-row">
+                <span class="avg-label">Relationships:</span>
+                <span class="avg-value">${averages.relationships.toFixed(1)}</span>
+            </div>
+            <div class="avg-row">
+                <span class="avg-label">Work:</span>
+                <span class="avg-value">${averages.work.toFixed(1)}</span>
+            </div>
+            <div class="avg-row avg-overall">
+                <span class="avg-label">Overall:</span>
+                <span class="avg-value">${averages.overall.toFixed(1)}</span>
+            </div>
+        `;
     },
 
     /**
@@ -359,12 +467,54 @@ const App = {
         const historyList = document.getElementById('history-list');
         historyList.innerHTML = '';
 
-        // Sort entries by date (newest first)
-        const sortedEntries = [...this.state.data.entries].reverse();
+        // Get filter values
+        const startDateInput = document.getElementById('history-start-date');
+        const endDateInput = document.getElementById('history-end-date');
 
-        sortedEntries.forEach(entry => {
+        let startDate = null;
+        let endDate = null;
+
+        if (startDateInput && startDateInput.value) {
+            startDate = new Date(startDateInput.value);
+            startDate.setHours(0, 0, 0, 0);
+        }
+
+        if (endDateInput && endDateInput.value) {
+            endDate = new Date(endDateInput.value);
+            endDate.setHours(23, 59, 59, 999);
+        }
+
+        // Filter entries
+        let filteredEntries = WheelChart.filterByDateRange(this.state.data.entries, startDate, endDate);
+
+        // Sort entries by date (newest first)
+        const sortedEntries = [...filteredEntries].reverse();
+
+        if (sortedEntries.length === 0) {
+            historyList.innerHTML = '<p class="no-data">No entries found for the selected date range.</p>';
+            return;
+        }
+
+        sortedEntries.forEach((entry, index) => {
             const entryEl = document.createElement('div');
             entryEl.className = 'history-entry';
+
+            // Calculate change from previous entry if available
+            let changeInfo = '';
+            if (index < sortedEntries.length - 1) {
+                const prevEntry = sortedEntries[index + 1];
+                const changes = this.calculateChanges(entry.ratings, prevEntry.ratings);
+                if (changes.hasChanges) {
+                    changeInfo = `
+                        <div class="entry-changes">
+                            <strong>Changes from previous:</strong>
+                            ${changes.improved.length > 0 ? `<span class="change-improved">↑ ${changes.improved.join(', ')}</span>` : ''}
+                            ${changes.declined.length > 0 ? `<span class="change-declined">↓ ${changes.declined.join(', ')}</span>` : ''}
+                        </div>
+                    `;
+                }
+            }
+
             entryEl.innerHTML = `
                 <div class="entry-date">${new Date(entry.timestamp).toLocaleString()}</div>
                 <div class="entry-ratings">
@@ -372,10 +522,39 @@ const App = {
                         `<span class="rating-badge">${key}: ${val}</span>`
                     ).join('')}
                 </div>
-                ${entry.notes ? `<div class="entry-notes">${entry.notes}</div>` : ''}
+                ${changeInfo}
+                ${entry.notes ? `<div class="entry-notes">"${entry.notes}"</div>` : ''}
             `;
             historyList.appendChild(entryEl);
         });
+
+        // Update entry count
+        const entryCount = document.getElementById('history-entry-count');
+        if (entryCount) {
+            entryCount.textContent = `Showing ${sortedEntries.length} ${sortedEntries.length === 1 ? 'entry' : 'entries'}`;
+        }
+    },
+
+    /**
+     * Calculates changes between two rating sets
+     */
+    calculateChanges(current, previous) {
+        const improved = [];
+        const declined = [];
+        let hasChanges = false;
+
+        Object.keys(current).forEach(key => {
+            const diff = current[key] - previous[key];
+            if (diff > 0) {
+                improved.push(`${key} (+${diff})`);
+                hasChanges = true;
+            } else if (diff < 0) {
+                declined.push(`${key} (${diff})`);
+                hasChanges = true;
+            }
+        });
+
+        return { improved, declined, hasChanges };
     },
 
     /**
