@@ -97,6 +97,7 @@
                 <div class="help-text">
                     <p><strong>First time?</strong> Choose a strong password - you'll need it every time you access your data.</p>
                     <p><strong>Security:</strong> Even with access to GitHub, your data cannot be read without this password.</p>
+                    <p><strong>Remember Password:</strong> If checked, your password will be stored on this device for automatic login. Only use this on trusted personal devices.</p>
                 </div>
             </div>
         </div>
@@ -319,6 +320,7 @@
                     <h3>Security</h3>
                     <p>Your data is encrypted with AES-GCM using your password.</p>
                     <p>Even with repository access, data cannot be read without your password.</p>
+                    <button id="clear-password-btn" class="btn btn-danger">Clear Saved Password</button>
                 </div>
 
                 <div class="settings-section">
@@ -359,6 +361,14 @@
                         alert('GitHub token cleared. Please refresh the page.');
                         location.reload();
                     }
+                });
+            }
+
+            // Settings - Clear saved password button
+            const clearPasswordBtn = document.getElementById('clear-password-btn');
+            if (clearPasswordBtn) {
+                clearPasswordBtn.addEventListener('click', () => {
+                    App.clearStoredPassword();
                 });
             }
         });
